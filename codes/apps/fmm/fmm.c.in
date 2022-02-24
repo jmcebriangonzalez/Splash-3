@@ -65,6 +65,14 @@
          The default is cost zones.
 
  */
+#define _GNU_SOURCE
+
+#ifdef ENABLE_PARSEC_HOOKS
+#include <hooks.h>
+#endif
+#ifdef RESET_STATS
+#include "m5op.h"
+#endif
 
 #include <stdio.h>
 #include <math.h>
@@ -119,6 +127,10 @@ main (int argc, char *argv[])
    long c;
    extern char *optarg;
 
+#ifdef ENABLE_PARSEC_HOOKS
+   __parsec_bench_begin (__splash2_fmm);
+#endif
+
    CLOCK(starttime);
 
    while ((c = getopt(argc, argv, "osh")) != -1) {
@@ -141,16 +153,23 @@ main (int argc, char *argv[])
    }
    ParallelExecute();
    WAIT_FOR_END(Number_Of_Processors - 1);*/
-   SPLASH3_ROI_BEGIN();
+#ifdef ENABLE_PARSEC_HOOKS
+   __parsec_roi_begin();
+#endif
    CREATE(ParallelExecute, Number_Of_Processors);
    WAIT_FOR_END(Number_Of_Processors);
-   SPLASH3_ROI_END();
+#ifdef ENABLE_PARSEC_HOOKS
+   __parsec_roi_end();
+#endif
 
    printf("Finished FMM\n");
    PrintTimes();
    if (do_output) {
      PrintAllParticles();
    }
+#ifdef ENABLE_PARSEC_HOOKS
+   __parsec_bench_end();
+#endif
    MAIN_END;
 }
 
@@ -166,6 +185,10 @@ ParallelExecute ()
    time_info *timing;
    unsigned long local_init_done = 0;
 
+#ifdef ENABLE_PARSEC_HOOKS
+    __parsec_thread_begin();
+#endif
+
    local_time = (time_info *) malloc(sizeof(struct _Time_Info) * MAX_TIME_STEPS);
    BARRIER(G_Memory->synch, Number_Of_Processors);
    LOCK(G_Memory->count_lock);
@@ -175,6 +198,13 @@ ParallelExecute ()
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might pin processes to
    processors to avoid migration */
+#ifdef BIND_THREADS
+   cpu_set_t cpuset;
+   CPU_ZERO(&cpuset);
+   CPU_SET(my_id, &cpuset);
+   pthread_t current_thread = pthread_self();
+   pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+#endif
 
    if (my_id == 0) {
      time_all = 1;
@@ -210,6 +240,10 @@ ParallelExecute ()
       if (MY_TIME_STEP == 2) {
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
+#ifdef RESET_STATS
+	  BARRIER(G_Memory->synch, Number_Of_Processors);
+	  m5_reset_stats(0,0);
+#endif
       }
 
       if (MY_TIME_STEP == 2) {
@@ -249,6 +283,11 @@ ParallelExecute ()
    }
    Local[my_id].init_done_times = local_init_done;
    BARRIER(G_Memory->synch, Number_Of_Processors);
+
+#ifdef ENABLE_PARSEC_HOOKS
+       __parsec_thread_end();
+#endif
+
 }
 
 

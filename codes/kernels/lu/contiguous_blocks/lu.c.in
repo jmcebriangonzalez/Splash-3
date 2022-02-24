@@ -38,6 +38,14 @@
 /*  Note: This version works under both the FORK and SPROC models        */
 /*                                                                       */
 /*************************************************************************/
+#define _GNU_SOURCE
+
+#ifdef ENABLE_PARSEC_HOOKS
+#include <hooks.h>
+#endif
+#ifdef RESET_STATS
+#include "m5op.h"
+#endif
 
 #include <stdio.h>
 #include <math.h>
@@ -118,6 +126,10 @@ int main(int argc, char *argv[])
   long edge;
   long size;
   unsigned long start;
+
+#ifdef ENABLE_PARSEC_HOOKS
+  __parsec_bench_begin (__splash2_lu_cb);
+#endif
 
   CLOCK(start)
 
@@ -292,6 +304,7 @@ int main(int argc, char *argv[])
 */
 
   BARINIT(Global->start, P);
+
   LOCKINIT(Global->idlock);
   Global->id = 0;
 
@@ -301,12 +314,16 @@ int main(int argc, char *argv[])
     PrintA();
   }
 
-  SPLASH3_ROI_BEGIN();
+#ifdef ENABLE_PARSEC_HOOKS
+	__parsec_roi_begin();
+#endif
 
   CREATE(SlaveStart, P);
   WAIT_FOR_END(P);
 
-  SPLASH3_ROI_END();
+#ifdef ENABLE_PARSEC_HOOKS
+	__parsec_roi_end();
+#endif
 
   if (doprint) {
     printf("\nMatrix after decomposition:\n");
@@ -402,6 +419,10 @@ int main(int argc, char *argv[])
     CheckResult(n, a, rhs);
   }
 
+#ifdef ENABLE_PARSEC_HOOKS
+  __parsec_bench_end();
+#endif
+
   MAIN_END;
 }
 
@@ -415,10 +436,26 @@ void SlaveStart()
     Global->id ++;
   UNLOCK(Global->idlock)
 
+#ifdef ENABLE_PARSEC_HOOKS
+    __parsec_thread_begin();
+#endif
+
 /* POSSIBLE ENHANCEMENT:  Here is where one might pin processes to
    processors to avoid migration */
+#ifdef BIND_THREADS
+   cpu_set_t cpuset;
+   CPU_ZERO(&cpuset);
+   CPU_SET(MyNum, &cpuset);
+   pthread_t current_thread = pthread_self();
+   pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+#endif
 
   OneSolve(n, block_size, MyNum, dostats);
+
+#ifdef ENABLE_PARSEC_HOOKS
+  __parsec_thread_end();
+#endif
+
 }
 
 
@@ -449,6 +486,9 @@ void OneSolve(long n, long block_size, long MyNum, long dostats)
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
+#ifdef RESET_STATS
+  m5_reset_stats(0,0);
+#endif
 
   if ((MyNum == 0) || (dostats)) {
     CLOCK(myrs);
@@ -910,4 +950,3 @@ void printerr(char *s)
 {
   fprintf(stderr,"ERROR: %s\n",s);
 }
-

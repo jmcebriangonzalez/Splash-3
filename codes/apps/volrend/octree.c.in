@@ -19,9 +19,14 @@
 *   octree.c:  Perform hiearchical enumeration of dataset.                    *
 *                                                                             *
 ******************************************************************************/
+#define _GNU_SOURCE
 
 #include <string.h>
 #include "incl.h"
+
+#ifdef ENABLE_PARSEC_HOOKS
+#include <hooks.h>
+#endif
 
 #define WRITE_PYR(IBIT,ILEVEL,IZ,IY,IX)\
 				(PYR_ADDRESS(ILEVEL,IZ,IY,IX),\
@@ -150,6 +155,10 @@ void Compute_Base()
   long xstart,xstop,ystart,ystop;
   long my_node;
 
+#ifdef ENABLE_PARSEC_HOOKS
+  __parsec_thread_begin();
+#endif
+
   LOCK(Global->IndexLock);
   my_node = Global->Index++;
   UNLOCK(Global->IndexLock);
@@ -158,6 +167,13 @@ void Compute_Base()
 /*  POSSIBLE ENHANCEMENT:  Here's where one might bind the process to a
     processor, if one wanted to.
 */
+#ifdef BIND_THREADS
+   cpu_set_t cpuset;
+   CPU_ZERO(&cpuset);
+   CPU_SET(my_node, &cpuset);
+   pthread_t current_thread = pthread_self();
+   pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+#endif
 
   num_xqueue = ROUNDUP((float)pyr_len[0][X]/(float)voxel_section[X]);
   num_yqueue = ROUNDUP((float)pyr_len[0][Y]/(float)voxel_section[Y]);
@@ -202,6 +218,11 @@ this barrier either.
 #ifndef SERIAL_PREPROC
   BARRIER(Global->SlaveBarrier,num_nodes);
 #endif
+
+#ifdef ENABLE_PARSEC_HOOKS
+      __parsec_thread_end();
+#endif
+
 }
 
 
@@ -213,6 +234,10 @@ void Or_Neighbors_In_Base()
   long pmap_partition,zstart,zstop;
   long my_node;
 
+#ifdef ENABLE_PARSEC_HOOKS
+  __parsec_thread_begin();
+#endif
+
   LOCK(Global->IndexLock);
   my_node = Global->Index++;
   UNLOCK(Global->IndexLock);
@@ -221,6 +246,13 @@ void Or_Neighbors_In_Base()
 /*  POSSIBLE ENHANCEMENT:  Here's where one might bind the process to a
     processor, if one wanted to.
 */
+#ifdef BIND_THREADS
+   cpu_set_t cpuset;
+   CPU_ZERO(&cpuset);
+   CPU_SET(my_node, &cpuset);
+   pthread_t current_thread = pthread_self();
+   pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+#endif
 
   /* assumed for now that z direction has enough parallelism */
   pmap_partition = ROUNDUP((double)pyr_len[0][Z]/(double)num_nodes);
@@ -266,6 +298,11 @@ need this barrier either.
 #ifndef SERIAL_PREPROC
   BARRIER(Global->SlaveBarrier,num_nodes);
 #endif
+
+#ifdef ENABLE_PARSEC_HOOKS
+	__parsec_thread_end();
+#endif
+
 }
 
 

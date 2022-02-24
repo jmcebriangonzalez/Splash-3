@@ -17,8 +17,16 @@
 /*    ****************
       subroutine slave
       ****************  */
+#define _GNU_SOURCE
 
 EXTERN_ENV
+
+#ifdef ENABLE_PARSEC_HOOKS
+#include <hooks.h>
+#endif
+#ifdef RESET_STATS
+#include "m5op.h"
+#endif
 
 #include <stdio.h>
 #include <math.h>
@@ -73,12 +81,24 @@ void slave()
    double *t1c;
    double *t1d;
 
+#ifdef ENABLE_PARSEC_HOOKS
+   __parsec_thread_begin();
+#endif
+
    ressqr = lev_res[numlev-1] * lev_res[numlev-1];
 
    LOCK(locks->idlock)
      procid = global->id;
      global->id = global->id+1;
    UNLOCK(locks->idlock) 
+
+#ifdef BIND_THREADS
+   cpu_set_t cpuset;
+   CPU_ZERO(&cpuset);
+   CPU_SET(procid, &cpuset);
+   pthread_t current_thread = pthread_self();
+   pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+#endif
 
    BARRIER(bars->sl_prini,nprocs)
 
@@ -393,7 +413,7 @@ eof(double) +
      }
    }
    
-   BARRIER(bars->sl_psini,nprocs) 
+   BARRIER(bars->sl_prini,nprocs)
 
    t2a = (double **) psib[procid];
    j = gp[procid].neighbors[UP];
@@ -687,6 +707,10 @@ eof(double) +
 	 }
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
+#ifdef RESET_STATS
+	 BARRIER(bars->sl_onetime,nprocs);
+	 m5_reset_stats(0,0);
+#endif
        }
 
        slave2(procid,firstrow,lastrow,numrows,firstcol,lastcol,numcols);
@@ -814,5 +838,9 @@ eof(double) +
     CLOCK(t1);
     gp[procid].total_time = t1-gp[procid].total_time;
   }
-}
 
+#ifdef ENABLE_PARSEC_HOOKS
+  __parsec_thread_end();
+#endif
+
+}

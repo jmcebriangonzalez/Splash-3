@@ -20,9 +20,14 @@
 *              operator is 1x3 and shading transition region is 0.            *
 *                                                                             *
 ******************************************************************************/
+#define _GNU_SOURCE
 
 #include <string.h>
 #include "incl.h"
+
+#ifdef ENABLE_PARSEC_HOOKS
+#include <hooks.h>
+#endif
 
 /* The following declarations show the layout of the .norm file.             */
 /* If changed, the version number must be incremented and code               */
@@ -110,9 +115,20 @@ void Normal_Compute()
   UNLOCK(Global->IndexLock);
   my_node = my_node%num_nodes;
 
+#ifdef ENABLE_PARSEC_HOOKS
+    __parsec_thread_begin();
+#endif
+
 /*  POSSIBLE ENHANCEMENT:  Here's where one might bind the process to a
     processor, if one wanted to.
 */
+#ifdef BIND_THREADS
+   cpu_set_t cpuset;
+   CPU_ZERO(&cpuset);
+   CPU_SET(my_node, &cpuset);
+   pthread_t current_thread = pthread_self();
+   pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+#endif
 
   /* use these to save work in loop */
   norm0 = (long)(NORM_LSHIFT);
@@ -176,6 +192,11 @@ void Normal_Compute()
 #ifndef SERIAL_PREPROC
   BARRIER(Global->SlaveBarrier,num_nodes);
 #endif
+
+#ifdef ENABLE_PARSEC_HOOKS
+      __parsec_thread_end();
+#endif
+
 }
 
 

@@ -13,6 +13,11 @@
 /*  support.                                                             */
 /*                                                                       */
 /*************************************************************************/
+#define _GNU_SOURCE
+
+#ifdef ENABLE_PARSEC_HOOKS
+#include <hooks.h>
+#endif
 
 MAIN_ENV
 
@@ -107,6 +112,9 @@ int main(int argc, char **argv)
 {
     /* default values for the control parameters of the driver */
     /* are in parameters.h */
+#ifdef ENABLE_PARSEC_HOOKS
+    __parsec_bench_begin (__splash2_water_spatial);
+#endif
 
     if ((argc == 2) && ((strncmp(argv[1],"-h",strlen("-h")) == 0) || (strncmp(argv[1],"-H",strlen("-H")) == 0))) {
         printf("Usage:  WATER-SPATIAL < infile, where the contents of infile can be\nobtained from the comments at the top of water.C and the first scanf \nin main() in water.C\n\n");
@@ -307,7 +315,6 @@ int main(int argc, char **argv)
         BARINIT(gl->start, NumProcs);
         BARINIT(gl->InterfBar, NumProcs);
         BARINIT(gl->PotengBar, NumProcs);
-        LOCKINIT(gl->IOLock);
         LOCKINIT(gl->IndexLock);
         LOCKINIT(gl->IntrafVirLock);
         LOCKINIT(gl->InterfVirLock);
@@ -339,12 +346,16 @@ int main(int argc, char **argv)
 
     /* spawn helper processes */
     CLOCK(gl->computestart);
-    SPLASH3_ROI_BEGIN();
+#ifdef ENABLE_PARSEC_HOOKS
+    __parsec_roi_begin();
+#endif
     CREATE(WorkStart, NumProcs);
 
     /* macro to make main process wait for all others to finish */
     WAIT_FOR_END(NumProcs);
-    SPLASH3_ROI_END();
+#ifdef ENABLE_PARSEC_HOOKS
+    __parsec_roi_end();
+#endif
     CLOCK(gl->computeend);
 
     printf("COMPUTESTART (after initialization) = %lu\n",gl->computestart);
@@ -356,6 +367,10 @@ int main(int argc, char **argv)
     printf("Other time (2nd timestep onward) = %lu\n",gl->tracktime - gl->intratime - gl->intertime);
 
     printf("\nExited Happily with XTT = %g (note: XTT value is garbage if NPRINT > NSTEP)\n", XTT);
+
+#ifdef ENABLE_PARSEC_HOOKS
+    __parsec_bench_end();
+#endif
 
     MAIN_END;
 } /* main.c */
@@ -372,13 +387,28 @@ void WorkStart() /* routine that each created process starts at;
 
     ProcID = ProcID % NumProcs;
 
+#ifdef ENABLE_PARSEC_HOOKS
+    __parsec_thread_begin();
+#endif
+
     /*  POSSIBLE ENHANCEMENT:  Here's where one might bind processes to processors
         if one wanted to.
         */
+#ifdef BIND_THREADS
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(ProcID, &cpuset);
+    pthread_t current_thread = pthread_self();
+    pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+#endif
 
     LocalXTT = MDMAIN(NSTEP,NPRINT,NSAVE,NORD1,ProcID);
     if (ProcID == 0) {
 	    XTT = LocalXTT;
     }
-}
 
+#ifdef ENABLE_PARSEC_HOOKS
+    __parsec_thread_end();
+#endif
+
+}

@@ -20,9 +20,14 @@
 *              transition width used is zero.                                 *
 *                                                                             *
 ******************************************************************************/
+#define _GNU_SOURCE
 
 #include <string.h>
 #include "incl.h"
+
+#ifdef ENABLE_PARSEC_HOOKS
+#include <hooks.h>
+#endif
 
 /* The following declarations show the layout of the .opc file.              */
 /* If changed, the version number must be incremented and code               */
@@ -109,9 +114,20 @@ void Opacity_Compute()
   UNLOCK(Global->IndexLock);
   my_node = my_node%num_nodes;
 
+#ifdef ENABLE_PARSEC_HOOKS
+  __parsec_thread_begin();
+#endif
+
 /*  POSSIBLE ENHANCEMENT:  Here's where one might bind the process to a
     processor, if one wanted to.
 */
+#ifdef BIND_THREADS
+   cpu_set_t cpuset;
+   CPU_ZERO(&cpuset);
+   CPU_SET(my_node, &cpuset);
+   pthread_t current_thread = pthread_self();
+   pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+#endif
 
   num_xqueue = ROUNDUP((float)opc_len[X]/(float)voxel_section[X]);
   num_yqueue = ROUNDUP((float)opc_len[Y]/(float)voxel_section[Y]);
@@ -171,6 +187,11 @@ void Opacity_Compute()
 #ifndef SERIAL_PREPROC
   BARRIER(Global->SlaveBarrier,num_nodes);
 #endif
+
+#ifdef ENABLE_PARSEC_HOOKS
+      __parsec_thread_end();
+#endif
+
 }
 
 
@@ -234,4 +255,3 @@ OPACITY **address;
 
   *address = NULL;
 }
-

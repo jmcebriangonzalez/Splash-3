@@ -25,6 +25,7 @@
       and the -a option enables adaptive sampling of pixels.
 
 *************************************************************************/
+#define _GNU_SOURCE
 
 #include "incl.h"
 #include <string.h>
@@ -34,6 +35,13 @@
 #include "tiffio.h"
 
 #define SH_MEM_AMT 60000000
+
+#ifdef ENABLE_PARSEC_HOOKS
+#include <hooks.h>
+#endif
+#ifdef RESET_STATS
+#include "m5op.h"
+#endif
 
 MAIN_ENV
 
@@ -75,6 +83,10 @@ int main(int argc, char *argv[])
     exit(-1);
   }
 
+#ifdef ENABLE_PARSEC_HOOKS
+  __parsec_bench_begin (__splash2_volrend);
+#endif
+
   MAIN_INITENV(, SH_MEM_AMT);
 
   num_nodes = atol(argv[1]);
@@ -98,7 +110,13 @@ int main(int argc, char *argv[])
   if (num_nodes > 1) {
     WAIT_FOR_END(num_nodes);
   }
-  SPLASH3_ROI_END();
+#ifdef ENABLE_PARSEC_HOOKS
+  __parsec_roi_end();
+#endif
+
+#ifdef ENABLE_PARSEC_HOOKS
+  __parsec_bench_end();
+#endif
   MAIN_END;
 }
 
@@ -120,8 +138,10 @@ void Frame()
 
 
   Global = (struct GlobalMemory *)NU_MALLOC(sizeof(struct GlobalMemory),0);
+
   BARINIT(Global->SlaveBarrier, num_nodes);
   BARINIT(Global->TimeBarrier, num_nodes);
+
   LOCKINIT(Global->IndexLock);
   LOCKINIT(Global->CountLock);
   ALOCKINIT(Global->QLock,MAX_NUMPROC+1);
@@ -225,7 +245,9 @@ void Frame()
   printf("\nRendering...\n");
   printf("node\tframe\ttime\titime\trays\thrays\tsamples trilirped\n");
 
-  SPLASH3_ROI_BEGIN();
+#ifdef ENABLE_PARSEC_HOOKS
+  __parsec_roi_begin();
+#endif
   CREATE(Render_Loop, num_nodes);
 }
 
@@ -245,14 +267,29 @@ void Render_Loop()
   UNLOCK(Global->IndexLock);
   my_node = my_node%num_nodes;
 
+#ifdef ENABLE_PARSEC_HOOKS
+  __parsec_thread_begin();
+#endif
 
 /*  POSSIBLE ENHANCEMENT:  Here's where one might bind the process to a
     processor, if one wanted to.
 */
+#ifdef BIND_THREADS
+   cpu_set_t cpuset;
+   CPU_ZERO(&cpuset);
+   CPU_SET(my_node, &cpuset);
+   pthread_t current_thread = pthread_self();
+   pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+#endif
 
   inv_num_nodes = 1.0/(float)num_nodes;
   image_partition = ROUNDUP(image_length*inv_num_nodes);
   mask_image_partition = ROUNDUP(mask_image_length*inv_num_nodes);
+
+#ifdef RESET_STATS
+  BARRIER(Global->SlaveBarrier,num_nodes);
+  m5_reset_stats(0,0);
+#endif
 
 #ifdef DIM
   int dim;
@@ -336,6 +373,10 @@ WriteGrayscaleTIFF(filename, image_len[X],image_len[Y],image_len[X], image_addre
 #ifdef DIM
   }
 #endif
+#ifdef ENABLE_PARSEC_HOOKS
+  __parsec_thread_end();
+#endif
+
 }
 
 #if 0

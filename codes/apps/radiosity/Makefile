@@ -6,6 +6,7 @@ HS = model.h parallel.h patch.h radiosity.h task.h structs.h
 
 include ../../Makefile.config
 
+
 CFLAGS := $(CFLAGS) -I./glibdumb -I./glibps
 
 #CCOPTS = -I -float -I/usr/include $(CFLAGS)
@@ -16,7 +17,7 @@ CFLAGS := $(CFLAGS) -I./glibdumb -I./glibps
 LOADLIBES = glibdumb/glib.a glibps/glibps.a
 
 $(TARGET): $(OBJS) $(LOADLIBES)
-	$(CC) $(OBJS) $(CFLAGS) $(LOADLIBES) -o $(TARGET) $(LDFLAGS)
+	$(CC) $(OBJS) $(CFLAGS) $(LOADLIBES) $(current_dir)/hooks_m5/m5op_x86.o -o $(TARGET) $(LDFLAGS)
 
 radiosity.h: patch.h model.h parallel.h task.h
 rad_main.c: rad_main.c.in $(HS)
@@ -35,9 +36,3 @@ glibdumb/glib.a:
 
 glibps/glibps.a:
 	$(MAKE) -C glibps
-
-clean:
-	$(MAKE) -C glibdumb clean
-	$(MAKE) -C glibps clean
-	$(RM) $(OBJS) RADIOSITY
-

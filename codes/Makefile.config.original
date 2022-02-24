@@ -1,11 +1,8 @@
 # Cross-compile changes by Thomas E. Hansen (CodingCellist) 2021-03-08
 
-mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
-current_dir := $(dir $(mkfile_path))
-
 CC := $(TOOLCHAIN_PREFIX)gcc
-CFLAGS := -O2 -pthread -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112 -std=c11 -g -fno-strict-aliasing -I$(current_dir)/hooks_m5 -I$(current_dir)/hooks_m5/include -DENABLE_PARSEC_HOOKS -DRESET_STATS -DBIND_THREADS
-LDFLAGS := -L$(current_dir)/hooks_m5/.libs -lm -lhooks
+CFLAGS := -O2 -pthread -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112 -std=c11 -g -fno-strict-aliasing
+LDFLAGS := -lm
 
 # BASEDIR needs to be set to the same directory as this Makefile
 # BASEDIR := $(HOME)/Splash-3/codes

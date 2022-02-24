@@ -42,6 +42,14 @@
 /*  Note: This version works under both the FORK and SPROC models        */
 /*                                                                       */
 /*************************************************************************/
+#define _GNU_SOURCE
+
+#ifdef ENABLE_PARSEC_HOOKS
+#include <hooks.h>
+#endif
+#ifdef RESET_STATS
+#include "m5op.h"
+#endif
 
 #include <stdio.h>
 #include <math.h>
@@ -131,6 +139,10 @@ int main(int argc, char *argv[])
   long factor;
   long pages;
   unsigned long start;
+
+#ifdef ENABLE_PARSEC_HOOKS
+	__parsec_bench_begin (__splash2_fft);
+#endif
 
   CLOCK(start);
 
@@ -303,6 +315,7 @@ int main(int argc, char *argv[])
   printf("\n");
 
   BARINIT(Global->start, P);
+
   LOCKINIT(Global->idlock);
   Global->id = 0;
   InitX(x);                  /* place random values in x */
@@ -320,12 +333,16 @@ int main(int argc, char *argv[])
 
   /* fire off P processes */
 
-  SPLASH3_ROI_BEGIN();
+#ifdef ENABLE_PARSEC_HOOKS
+	__parsec_roi_begin();
+#endif
 
   CREATE(SlaveStart, P);
   WAIT_FOR_END(P);
 
-  SPLASH3_ROI_END();
+#ifdef ENABLE_PARSEC_HOOKS
+	__parsec_roi_end();
+#endif
 
   if (doprint) {
     if (test_result) {
@@ -417,6 +434,10 @@ int main(int argc, char *argv[])
     }
   }
 
+#ifdef ENABLE_PARSEC_HOOKS
+	__parsec_bench_end();
+#endif
+
   MAIN_END;
 }
 
@@ -437,8 +458,19 @@ void SlaveStart()
     Global->id++;
   UNLOCK(Global->idlock); 
 
+#ifdef ENABLE_PARSEC_HOOKS
+    __parsec_thread_begin();
+#endif
+
 /* POSSIBLE ENHANCEMENT:  Here is where one might pin processes to
    processors to avoid migration */
+#ifdef BIND_THREADS
+   cpu_set_t cpuset;
+   CPU_ZERO(&cpuset);
+   CPU_SET(MyNum, &cpuset);
+   pthread_t current_thread = pthread_self();
+   pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+#endif
 
   BARRIER(Global->start, P);
 
@@ -460,6 +492,9 @@ void SlaveStart()
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
+#ifdef RESET_STATS
+  m5_reset_stats(0,0);
+#endif
 
   if ((MyNum == 0) || (dostats)) {
     CLOCK(initdone);
@@ -484,6 +519,11 @@ void SlaveStart()
     Global->finishtime = finish;
     Global->initdonetime = initdone;
   }
+
+#ifdef ENABLE_PARSEC_HOOKS
+	__parsec_thread_end();
+#endif
+
 }
 
 
@@ -914,4 +954,3 @@ long log_2(long number)
     return(-1);
   }
 }
-
