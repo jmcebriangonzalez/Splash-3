@@ -190,7 +190,7 @@ ParallelExecute ()
 #endif
 
    local_time = (time_info *) malloc(sizeof(struct _Time_Info) * MAX_TIME_STEPS);
-   BARRIER(G_Memory->synch, Number_Of_Processors);
+   ABARRIER(G_Memory->synch, Number_Of_Processors);
    LOCK(G_Memory->count_lock);
      my_id = G_Memory->id;
      G_Memory->id++;
@@ -233,7 +233,7 @@ ParallelExecute ()
       LockedPrint("Starting FMM with %d processor%s\n", Number_Of_Processors,
 		  (Number_Of_Processors == 1) ? "" : "s");
    }
-   BARRIER(G_Memory->synch, Number_Of_Processors);
+   ABARRIER(G_Memory->synch, Number_Of_Processors);
    Local[my_id].Time = 0.0;
    for (MY_TIME_STEP = 0; MY_TIME_STEP < Time_Steps; MY_TIME_STEP++) {
 
@@ -241,7 +241,7 @@ ParallelExecute ()
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
 #ifdef RESET_STATS
-	  BARRIER(G_Memory->synch, Number_Of_Processors);
+	  ABARRIER(G_Memory->synch, Number_Of_Processors);
 	  m5_reset_stats(0,0);
 #endif
       }

@@ -287,7 +287,7 @@ void Render_Loop()
   mask_image_partition = ROUNDUP(mask_image_length*inv_num_nodes);
 
 #ifdef RESET_STATS
-  BARRIER(Global->SlaveBarrier,num_nodes);
+  ABARRIER(Global->SlaveBarrier,num_nodes);
   m5_reset_stats(0,0);
 #endif
 

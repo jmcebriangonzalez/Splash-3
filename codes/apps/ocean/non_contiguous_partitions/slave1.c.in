@@ -246,7 +246,7 @@ void slave()
 
 /* wait until all processes have completed the above initialization  */
 
-BARRIER(bars->sl_prini,nprocs)
+ABARRIER(bars->sl_prini,nprocs)
 
    istart = gp[procid].rel_start_y[numlev-1];
    iend = istart + gp[procid].rel_num_y[numlev-1] - 1;
@@ -302,8 +302,8 @@ BARRIER(bars->sl_prini,nprocs)
            ressqr*wrk1->psib[i][j]);
      }
    }
-   BARRIER(bars->sl_prini,nprocs)
-   
+   ABARRIER(bars->sl_prini,nprocs)
+
    multig(procid);
 
    for(i=istart;i<=iend;i++) {
@@ -312,7 +312,7 @@ BARRIER(bars->sl_prini,nprocs)
      }
    }
 
-   BARRIER(bars->sl_psini,nprocs)
+   ABARRIER(bars->sl_psini,nprocs)
 
 /* update the local running sum psibipriv by summing all the resulting
    values in that process's share of the psib matrix   */
@@ -504,10 +504,10 @@ BARRIER(bars->sl_prini,nprocs)
        frcng->tauz[i][iindex] = curlt;
      }
    }
-   
-   BARRIER(bars->sl_onetime,nprocs)
-   
-   
+
+   ABARRIER(bars->sl_onetime,nprocs)
+
+
 /***************************************************************
  one-time stuff over at this point
  ***************************************************************/
@@ -528,7 +528,7 @@ BARRIER(bars->sl_prini,nprocs)
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
 #ifdef RESET_STATS
-	 BARRIER(bars->sl_onetime,nprocs);
+	 ABARRIER(bars->sl_onetime,nprocs);
 	 m5_reset_stats(0,0);
 #endif
 

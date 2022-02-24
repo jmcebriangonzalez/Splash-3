@@ -90,7 +90,7 @@ void slave()
    LOCK(locks->idlock)
      procid = global->id;
      global->id = global->id+1;
-   UNLOCK(locks->idlock) 
+   UNLOCK(locks->idlock)
 
 #ifdef BIND_THREADS
    cpu_set_t cpuset;
@@ -100,7 +100,7 @@ void slave()
    pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 #endif
 
-   BARRIER(bars->sl_prini,nprocs)
+   ABARRIER(bars->sl_prini,nprocs)
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might pin processes to
    processors to avoid migration. */
@@ -352,7 +352,7 @@ eof(double) +
 
 /* wait until all processes have completed the above initialization  */
 
-   BARRIER(bars->sl_prini,nprocs)
+   ABARRIER(bars->sl_prini,nprocs)
 
 /* compute psib array (one-time computation) and integrate into psibi */
 
@@ -412,8 +412,8 @@ eof(double) +
        t2a[i][jm-1] = t2b[i][jm-1];
      }
    }
-   
-   BARRIER(bars->sl_prini,nprocs)
+
+   ABARRIER(bars->sl_prini,nprocs)
 
    t2a = (double **) psib[procid];
    j = gp[procid].neighbors[UP];
@@ -471,7 +471,7 @@ eof(double) +
      }
    }
 
-   BARRIER(bars->sl_prini,nprocs)
+   ABARRIER(bars->sl_prini,nprocs)
 
 /* update the local running sum psibipriv by summing all the resulting
    values in that process's share of the psib matrix   */
@@ -686,7 +686,7 @@ eof(double) +
      }
    }
 
-   BARRIER(bars->sl_onetime,nprocs)
+   ABARRIER(bars->sl_onetime,nprocs)
 
 /***************************************************************
  one-time stuff over at this point
@@ -708,7 +708,7 @@ eof(double) +
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
 #ifdef RESET_STATS
-	 BARRIER(bars->sl_onetime,nprocs);
+	 ABARRIER(bars->sl_onetime,nprocs);
 	 m5_reset_stats(0,0);
 #endif
        }

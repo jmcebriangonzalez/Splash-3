@@ -271,7 +271,7 @@ VOID	StartRayTrace()
 	 *	moving this barrier.
 	 */
 
-	BARRIER(gm->start, gm->nprocs)
+	ABARRIER(gm->start, gm->nprocs)
 
 	/* POSSIBLE ENHANCEMENT:  Here's where one would RESET STATISTICS
 	and TIMING if one wanted to measure only the parallel part */

@@ -867,7 +867,7 @@ void radiosity()
     /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
        statistics that one is measuring about the parallel execution */
 #ifdef RESET_STATS
-    BARRIER(global->barrier, n_processors);
+    ABARRIER(global->barrier, n_processors);
     m5_reset_stats(0,0);
 #endif
 

@@ -112,11 +112,11 @@ int main(int argc, char *argv[])
 
   while ((c = getopt(argc, argv, "B:C:p:D:sth")) != -1) {
     switch(c) {
-    case 'B': postpass_partition_size = atoi(optarg); break;  
-    case 'C': CacheSize = (double) atoi(optarg); break;  
-    case 'p': P = atol(optarg); break;  
-    case 's': do_stats = 1; break;  
-    case 't': do_test = 1; break;  
+    case 'B': postpass_partition_size = atoi(optarg); break;
+    case 'C': CacheSize = (double) atoi(optarg); break;
+    case 'p': P = atol(optarg); break;
+    case 's': do_stats = 1; break;
+    case 't': do_test = 1; break;
     case 'h': printf("Usage: CHOLESKY <options> file\n\n");
               printf("options:\n");
               printf("  -Bb : Use a postpass partition size of b.\n");
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
   LOCKINIT(Global->waitLock)
   LOCKINIT(Global->memLock)
 
-  MallocInit(P);  
+  MallocInit(P);
 
   i = 0;
   while (++i < argc && argv[i][0] == '-')
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
   printf("Fan-out, ");
   printf("no block copy-across\n");
 
-  printf("LB domain, "); 
+  printf("LB domain, ");
   printf("embedded ");
   printf("distribution\n");
 
@@ -229,7 +229,7 @@ int main(int argc, char *argv[])
     if (domain[i])
       num_domain += nz[i];
   }
-  
+
   ComputeTargetBlockSize(M, P);
 
   printf("Target partition size %ld, postpass size %ld\n",
@@ -375,7 +375,7 @@ void Go()
 
   PreProcessFO(MyNum);
 
-  BARRIER(Global->start, P);
+  ABARRIER(Global->start, P);
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
@@ -409,7 +409,7 @@ void Go()
   if (MyNum == 0) {
     gp->initdone = lc->rs;
     gp->finish = lc->rf;
-  } 
+  }
 
   BARRIER(Global->start, P);
 

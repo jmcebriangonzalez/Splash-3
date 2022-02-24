@@ -26,6 +26,10 @@ EXTERN_ENV
 #include "split.h"
 #include "global.h"
 
+#ifdef RESET_STATS
+#include "m5op.h"
+#endif
+
 /************************************************************************/
 
 /* routine that implements the time-steps. Called by main routine and calls others */
@@ -40,11 +44,11 @@ double MDMAIN(long NSTEP, long NPRINT, long NSAVE, long NORD1, long ProcID)
     /*.......ESTIMATE ACCELERATION FROM F/M */
     INTRAF(&gl->VIR,ProcID);
 
-    BARRIER(gl->start, NumProcs);
+    ABARRIER(gl->start, NumProcs);
 
     INTERF(ACC,&gl->VIR,ProcID);
 
-    BARRIER(gl->start, NumProcs);
+    ABARRIER(gl->start, NumProcs);
 
     /* MOLECULAR DYNAMICS LOOP OVER ALL TIME-STEPS */
 
@@ -52,7 +56,12 @@ double MDMAIN(long NSTEP, long NPRINT, long NSAVE, long NORD1, long ProcID)
         TTMV=TTMV+1.00;
 
         /* reset simulator stats at beginning of second time-step */
-
+#ifdef RESET_STATS
+        if(i == 2) {
+            ABARRIER(gl->start, NumProcs);
+	    m5_reset_stats(0,0);
+        }
+#endif
         /* POSSIBLE ENHANCEMENT:  Here's where one start measurements to avoid
            cold-start effects.  Recommended to do this at the beginning of the
            second timestep; i.e. if (i == 2).

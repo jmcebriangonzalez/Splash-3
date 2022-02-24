@@ -28,6 +28,10 @@ EXTERN_ENV
 #include "split.h"
 #include "global.h"
 
+#ifdef RESET_STATS
+#include "m5op.h"
+#endif
+
 /************************************************************************/
 
 double MDMAIN(long NSTEP, long NPRINT, long NSAVE, long NORD1, long ProcID)
@@ -65,11 +69,11 @@ double MDMAIN(long NSTEP, long NPRINT, long NSAVE, long NORD1, long ProcID)
 
     INTRAF(&gl->VIR,ProcID);
 
-    BARRIER(gl->start,NumProcs);
+    ABARRIER(gl->start,NumProcs);
 
     INTERF(ACC,&gl->VIR,ProcID);
 
-    BARRIER(gl->start, NumProcs);
+    ABARRIER(gl->start, NumProcs);
 
     /* MOLECULAR DYNAMICS LOOP */
 
@@ -80,6 +84,12 @@ double MDMAIN(long NSTEP, long NPRINT, long NSAVE, long NORD1, long ProcID)
            cold-start effects.  Recommended to do this at the beginning of the
            second timestep; i.e. if (i == 2).
            */
+#ifdef RESET_STATS
+        if(i == 2) {
+            ABARRIER(gl->start, NumProcs);
+	    m5_reset_stats(0,0);
+        }
+#endif
 
         /* initialize various shared sums */
         if (ProcID == 0) {
