@@ -4,6 +4,13 @@ dnl Modified by Alberto Ros and Christos Sakalis, 2015
 divert(-1)
 define(NEWPROC,) dnl
 
+define(_NOTE_START_LOCK, `syncmark_lockAcquire_begin();')
+define(_NOTE_END_LOCK, `syncmark_lockAcquire_end();')
+define(_NOTE_START_UNLOCK, `syncmark_lockRelease_begin();')
+define(_NOTE_END_UNLOCK, `syncmark_lockRelease_end();')
+define(_NOTE_START_BARRIER, `syncmark_barrier_begin();')
+define(_NOTE_END_BARRIER, `syncmark_barrier_end();')
+
 define(ABARDEF, `unsigned __count__; volatile int __sense__=1; __thread int __local_sense__=1;')
 
 define(ABAREXTERN,`
@@ -27,6 +34,7 @@ dnl define(SPLASH3_ROI_END, `m5_dumpreset_stats(0, 0)')
 
 define(BARRIER,
 `{
+_NOTE_START_BARRIER();
 pthread_mutex_lock(&(($1).bar_mutex));
 ($1).bar_teller++;
 if (($1).bar_teller == ($2)) {
@@ -35,12 +43,14 @@ if (($1).bar_teller == ($2)) {
 } else {
 	pthread_cond_wait(&(($1).bar_cond), &(($1).bar_mutex));
 }
-pthread_mutex_unlock(&(($1).bar_mutex));}
+pthread_mutex_unlock(&(($1).bar_mutex));
+_NOTE_END_BARRIER();}
 ')
 
 
 define(ABARRIER,
 `{
+_NOTE_START_BARRIER();
 __local_sense__ = !__local_sense__;
 if (atomic_fetch_sub(&(__count__), 1) == 1) {
   __count__ = $2;
@@ -48,6 +58,7 @@ if (atomic_fetch_sub(&(__count__), 1) == 1) {
 } else {
   do {} while (__sense__ != __local_sense__);
 }
+_NOTE_END_BARRIER();
 }')
 
 define(BARDEC, `struct { pthread_mutex_t bar_mutex; pthread_cond_t bar_cond; unsigned bar_teller; } $1;')
@@ -61,8 +72,8 @@ define(BARINIT,
 
 define(LOCKDEC, `pthread_mutex_t $1;')
 define(LOCKINIT, `{pthread_mutex_init(&($1),NULL);}')
-define(LOCK, `{pthread_mutex_lock(&($1));}')
-define(UNLOCK, `{pthread_mutex_unlock(&($1));}')
+define(LOCK, `{_NOTE_START_LOCK(); pthread_mutex_lock(&($1)); _NOTE_END_LOCK();}')
+define(UNLOCK, `{_NOTE_START_UNLOCK(); pthread_mutex_unlock(&($1)); _NOTE_END_UNLOCK();}')
 
 define(ALOCKDEC, `pthread_mutex_t ($1)[$2];')
 define(ALOCKINIT, `{ int i; for(i = 0; i < ($2); i++) pthread_mutex_init(&(($1)[i]), NULL); }')
@@ -119,6 +130,7 @@ define(INCLUDES,`
 #include <stdint.h>
 #include <sched.h>
 #include <unistd.h>
+#include "m5op.h"
 #define PAGE_SIZE 4096
 #define __MAX_THREADS__ 256
 ')
