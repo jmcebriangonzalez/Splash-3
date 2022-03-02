@@ -1,3 +1,9 @@
+############### NOTE THIS IS ONLY FOR HOOKS AND M5 BRANCHES ###################
+
+For hooks and m5 branch -> cd hooks_m5; make -f Makefile.x86; make clean; make Modify Makefile.config as needed (e.g., remove the RESET_STAT definition) Build with "make". Make sure you define BIND_THREADS to have binded threads. Gather binaries with ./get_bins.sh (places them in the bins folder)
+
+##############################################################################
+
 Splash-3 Benchmark Suite
 ========================
 
@@ -10,7 +16,7 @@ Splash-2](http://www.capsl.udel.edu/splash/index.html) suite, which, among other
 things, fixes issues related to running Splash-2 on x86-64, as well as lots of
 warnings.  While working on the release version of Splash-3 we realized that we
 are duplicating a lot of the effort already taken by Modified Splash-2, so we
-decided to port our Splash-3 patchset on top of Modified Splash-2. 
+decided to port our Splash-3 patchset on top of Modified Splash-2.
 
 Modified Splash-2 also changes every `int` to `long`, which is something that we
 only partially did for the version discussed in the paper, so we do expect some
@@ -152,4 +158,4 @@ please contact Christos Sakalis directly.
 Anoop Gupta. 1995. The SPLASH-2 programs: characterization and methodological
 considerations. In Proceedings of the 22nd annual international symposium on
 Computer architecture (ISCA '95). ACM, New York, NY, USA, 24-36.
-DOI=http://dx.doi.org/10.1145/223982.223990 
+DOI=http://dx.doi.org/10.1145/223982.223990
